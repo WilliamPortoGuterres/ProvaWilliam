@@ -15,6 +15,11 @@
 }
 
 <h2>Medicos</h2>
+
+<div class="row">
+
+<div class="col-md-6">
+
 @if (respostaDelete != null)
 {<p style="color:@(respostaDelete.Sucesso?"green":"red")">@respostaDelete.Mensagem</p>}
 
@@ -31,13 +36,20 @@ new SelectList(Enumerable.Empty<SelectListItem>(), "Value", "Text"), "Selecione 
     </p>
 
 }
+</div>
+<div class="col-md-6">
 
 
 <p>
-    @Html.ActionLink("Registrar novo medico", "Create", "", new { @class = "btn btn-primary btn-sm" })
+    @Html.ActionLink("Registrar novo medico", "Create", "", new { @class = "btn btn-primary" })
 </p>
 @if (!string.IsNullOrEmpty( respostaMSGSemEspecialidade) )
 {<p >@respostaMSGSemEspecialidade</p>}
+
+</div>
+
+</div>
+
 <table class="table table-striped table-dark">
     <tr>
         <th>
