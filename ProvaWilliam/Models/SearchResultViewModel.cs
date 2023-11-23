@@ -9,6 +9,7 @@ namespace ProvaWilliam.Models
     {
 
         public List<Medicos> Medicos { get; set; }
+        public List<Especialidade> Especialidades { get; set; }
         public int CurrentPage { get; set; }
         public int PageSize { get; set; }
         public int TotalRecords { get; set; }

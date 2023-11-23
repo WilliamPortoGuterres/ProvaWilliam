@@ -13,7 +13,7 @@ namespace ProvaWilliam.Migrations
         
         string IMigrationMetadata.Id
         {
-            get { return "202311231142559_inicial"; }
+            get { return "202311231820053_inicial"; }
         }
         
         string IMigrationMetadata.Source

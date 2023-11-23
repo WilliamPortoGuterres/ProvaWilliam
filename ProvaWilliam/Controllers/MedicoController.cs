@@ -10,37 +10,28 @@ using System.Web.Mvc;
 using ProvaWilliam.Infra;
 using ProvaWilliam.Models;
 using ProvaWilliam.Models.Filter;
+using ProvaWilliam.Interface;
 
 namespace ProvaWilliam.Controllers
 {
     public class MedicoController : Controller
     {
-        private Contexto db = new Contexto();
+        private IMedicoService _medicoService;
+        private IEspecialidadeService _especialidadeService;
+        public MedicoController() { }
+        public MedicoController(IMedicoService medicoService, IEspecialidadeService especialidadeService)
+        {
+            _medicoService = medicoService;
+            _especialidadeService = especialidadeService;
 
-        // GET: Medico
-      
+        }
+
         public async Task<ActionResult> Index(int pageNumber = 1, int pageSize = 10)
         {
+            ViewBag.respostaDelete = TempData["respostaDelete"];
+            ViewBag.respostaMSGSemEspecialidade = TempData["msg_sem_especialidade"];
 
-            int skipAmount = (pageNumber - 1) * pageSize;
-
-
-            var totalRecords = await db.Medicos.CountAsync();
-
-            var retorno = await db.Medicos
-                .OrderBy(x => x.nome)
-                .Skip(skipAmount)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var viewModel = new SearchResultViewModel
-            {
-                Medicos = retorno,
-                CurrentPage = pageNumber,
-                PageSize = pageSize,
-                TotalRecords = totalRecords
-            };
-
+            var viewModel = await _medicoService.Listagem(pageNumber, pageSize);
             return View(viewModel);
         }
 
@@ -49,47 +40,20 @@ namespace ProvaWilliam.Controllers
 
         public async Task<ActionResult> SearchMedicos(FilterMedicos filter)
         {
-
-            int skipAmount = (filter.PageNumber - 1) * filter.PageSize;
-
-            var query = db.Medicos
-
-                .Where(x => (filter.nome == null || x.nome == filter.nome)
-                       && (filter.crm == null || x.crm == filter.crm)
-                       && (x.id_especialidade.Equals(filter.id_especialidade)));
-                      
-
-
-            var totalRecords = await query.CountAsync();
-
-            var retorno = await query
-                .OrderBy(x => x.nome)
-                .Skip(skipAmount)
-                .Take(filter.PageSize)
-                .ToListAsync();
-
-
-            var viewModel = new SearchResultViewModel
-            {
-                Medicos = retorno,
-                CurrentPage = filter.PageNumber,
-                PageSize = filter.PageSize,
-                TotalRecords = totalRecords
-            };
-
+            var viewModel = await _medicoService.GetMedicoByFilterAsync(filter);
             return View("Index", viewModel);
         }
 
 
 
-        // GET: Medico/Details/5
+
         public async Task<ActionResult> Details(int? id)
         {
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Medicos medicos = await db.Medicos.FindAsync(id);
+            Medicos medicos = await _medicoService.GetMedicoByIdAsync(id.Value);
             if (medicos == null)
             {
                 return HttpNotFound();
@@ -97,72 +61,79 @@ namespace ProvaWilliam.Controllers
             return View(medicos);
         }
 
-        // GET: Medico/Create
-        public ActionResult Create()
+
+        public async Task<ActionResult> Create()
         {
-            ViewBag.id_especialidade = new SelectList(db.Especialidades, "id", "descricao");
+            var validaEspecialidade =await _especialidadeService.GetAllAsync();
+            if (validaEspecialidade.Count() <= 0)
+            {
+
+                TempData["msg_sem_especialidade"] = "Cadastre pelo menos uma especialidade antes de cadastrar os medicos!";
+                return RedirectToAction("Index");
+            }
+
+            var especialidade = await _especialidadeService.GetAllAsync();
+            ViewBag.id_especialidade = new SelectList(especialidade, "id", "descricao");
             return View();
         }
 
-        // POST: Medico/Create
-        // Para proteger-se contra ataques de excesso de postagem, ative as propriedades específicas às quais deseja se associar. 
-        // Para obter mais detalhes, confira https://go.microsoft.com/fwlink/?LinkId=317598.
+        
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Create([Bind(Include = "id,nome,crm,id_especialidade")] Medicos medicos)
         {
+
+            
+
             if (ModelState.IsValid)
             {
-                db.Medicos.Add(medicos);
-                await db.SaveChangesAsync();
+                var retorno =await _medicoService.Create(medicos);
                 return RedirectToAction("Index");
             }
-
-            ViewBag.id_especialidade = new SelectList(db.Especialidades, "id", "descricao", medicos.id_especialidade);
+            var especialidades =await _especialidadeService.GetAllAsync();
+            ViewBag.id_especialidade = new SelectList(especialidades, "id", "descricao", medicos.id_especialidade);
             return View(medicos);
         }
 
-        // GET: Medico/Edit/5
         public async Task<ActionResult> Edit(int? id)
         {
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Medicos medicos = await db.Medicos.FindAsync(id);
+            Medicos medicos = await _medicoService.GetMedicoByIdAsync(id.Value);
             if (medicos == null)
             {
                 return HttpNotFound();
             }
-            ViewBag.id_especialidade = new SelectList(db.Especialidades, "id", "descricao", medicos.id_especialidade);
+            var especialidades = await _especialidadeService.GetAllAsync();
+            ViewBag.id_especialidade = new SelectList(especialidades, "id", "descricao", medicos.id_especialidade);
             return View(medicos);
         }
 
-        // POST: Medico/Edit/5
-        // Para proteger-se contra ataques de excesso de postagem, ative as propriedades específicas às quais deseja se associar. 
-        // Para obter mais detalhes, confira https://go.microsoft.com/fwlink/?LinkId=317598.
+        
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Edit([Bind(Include = "id,nome,crm,id_especialidade")] Medicos medicos)
         {
             if (ModelState.IsValid)
             {
-                db.Entry(medicos).State = EntityState.Modified;
-                await db.SaveChangesAsync();
+                var retorno =await _medicoService.Edit(medicos);  
                 return RedirectToAction("Index");
             }
-            ViewBag.id_especialidade = new SelectList(db.Especialidades, "id", "descricao", medicos.id_especialidade);
+            var especialidades = await _especialidadeService.GetAllAsync();
+            ViewBag.id_especialidade = new SelectList(especialidades, "id", "descricao", medicos.id_especialidade);
             return View(medicos);
         }
 
-        // GET: Medico/Delete/5
+      
         public async Task<ActionResult> Delete(int? id)
         {
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Medicos medicos = await db.Medicos.FindAsync(id);
+            Medicos medicos = await _medicoService.GetMedicoByIdAsync(id.Value);
             if (medicos == null)
             {
                 return HttpNotFound();
@@ -170,24 +141,16 @@ namespace ProvaWilliam.Controllers
             return View(medicos);
         }
 
-        // POST: Medico/Delete/5
+        
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> DeleteConfirmed(int id)
         {
-            Medicos medicos = await db.Medicos.FindAsync(id);
-            db.Medicos.Remove(medicos);
-            await db.SaveChangesAsync();
+            var resposta = await _medicoService.Delete(id);
+            TempData["respostaDelete"] = resposta;
             return RedirectToAction("Index");
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                db.Dispose();
-            }
-            base.Dispose(disposing);
-        }
+        
     }
 }

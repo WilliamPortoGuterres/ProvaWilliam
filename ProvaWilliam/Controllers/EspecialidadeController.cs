@@ -10,41 +10,44 @@ using System.Web.Mvc;
 using ProvaWilliam.Infra;
 using ProvaWilliam.Models;
 using Newtonsoft.Json;
+using ProvaWilliam.Services;
+using ProvaWilliam.Interface;
 
 namespace ProvaWilliam.Controllers
 {
     public class EspecialidadeController : Controller
     {
-        private Contexto db = new Contexto();
 
-        // GET: Especialidade
-        public async Task<ActionResult> Index()
+        private IEspecialidadeService _especialidadeService;
+        public EspecialidadeController(IEspecialidadeService especialidadeService)
         {
-            return View(await db.Especialidades.ToListAsync());
+            _especialidadeService = especialidadeService;
         }
 
 
-         public async Task<JsonResult> SerchEspecialidades()
+        public async Task<ActionResult> Index(int pageNumber = 1, int pageSize = 10)
         {
-
-            var result = await db.Especialidades
-                          .Select(e => new { e.id, e.descricao })
-                          .ToListAsync();
-
-
-            
-
-            return Json(result,JsonRequestBehavior.AllowGet);
+            ViewBag.respostaDelete = TempData["respostaDelete"];
+            var retorno = await _especialidadeService.Listagem(pageNumber ,  pageSize );
+            return View(retorno);
         }
 
-        // GET: Especialidade/Details/5
+
+        public async Task<JsonResult> SerchEspecialidades()
+        {
+
+            var result = await _especialidadeService.SearchEspecialidades();
+            return Json(result, JsonRequestBehavior.AllowGet);
+        }
+
+
         public async Task<ActionResult> Details(int? id)
         {
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Especialidade especialidade = await db.Especialidades.FindAsync(id);
+            Especialidade especialidade = await _especialidadeService.GetEspecialidadeByIdAsync(id.Value);
             if (especialidade == null)
             {
                 return HttpNotFound();
@@ -52,37 +55,33 @@ namespace ProvaWilliam.Controllers
             return View(especialidade);
         }
 
-        // GET: Especialidade/Create
         public ActionResult Create()
         {
             return View();
         }
 
-        // POST: Especialidade/Create
-        // Para proteger-se contra ataques de excesso de postagem, ative as propriedades específicas às quais deseja se associar. 
-        // Para obter mais detalhes, confira https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Create([Bind(Include = "id,descricao")] Especialidade especialidade)
         {
             if (ModelState.IsValid)
             {
-                db.Especialidades.Add(especialidade);
-                await db.SaveChangesAsync();
+                var retorno = await _especialidadeService.Create(especialidade);
+
                 return RedirectToAction("Index");
             }
 
             return View(especialidade);
         }
 
-        // GET: Especialidade/Edit/5
+
         public async Task<ActionResult> Edit(int? id)
         {
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Especialidade especialidade = await db.Especialidades.FindAsync(id);
+            Especialidade especialidade = await _especialidadeService.GetEspecialidadeByIdAsync(id.Value);
             if (especialidade == null)
             {
                 return HttpNotFound();
@@ -90,30 +89,28 @@ namespace ProvaWilliam.Controllers
             return View(especialidade);
         }
 
-        // POST: Especialidade/Edit/5
-        // Para proteger-se contra ataques de excesso de postagem, ative as propriedades específicas às quais deseja se associar. 
-        // Para obter mais detalhes, confira https://go.microsoft.com/fwlink/?LinkId=317598.
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Edit([Bind(Include = "id,descricao")] Especialidade especialidade)
         {
             if (ModelState.IsValid)
             {
-                db.Entry(especialidade).State = EntityState.Modified;
-                await db.SaveChangesAsync();
+                var Retorno = await _especialidadeService.Edit(especialidade);
+
                 return RedirectToAction("Index");
             }
             return View(especialidade);
         }
 
-        // GET: Especialidade/Delete/5
+
         public async Task<ActionResult> Delete(int? id)
         {
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Especialidade especialidade = await db.Especialidades.FindAsync(id);
+            Especialidade especialidade = await _especialidadeService.GetEspecialidadeByIdAsync(id.Value);
             if (especialidade == null)
             {
                 return HttpNotFound();
@@ -121,24 +118,17 @@ namespace ProvaWilliam.Controllers
             return View(especialidade);
         }
 
-        // POST: Especialidade/Delete/5
+
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> DeleteConfirmed(int id)
         {
-            Especialidade especialidade = await db.Especialidades.FindAsync(id);
-            db.Especialidades.Remove(especialidade);
-            await db.SaveChangesAsync();
+            var resposta = await _especialidadeService.Delete(id);
+
+            TempData["respostaDelete"] =resposta;
             return RedirectToAction("Index");
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                db.Dispose();
-            }
-            base.Dispose(disposing);
-        }
+
     }
 }

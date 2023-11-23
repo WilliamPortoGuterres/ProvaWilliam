@@ -12,13 +12,8 @@ namespace ProvaWilliam.Infra
 
         public Contexto() { }
 
+        public DbSet<Medicos> Medico { get; set; }
 
-       
-
-       
-
-        public System.Data.Entity.DbSet<ProvaWilliam.Models.Medicos> Medicos { get; set; }
-
-        public System.Data.Entity.DbSet<ProvaWilliam.Models.Especialidade> Especialidades { get; set; }
+        public DbSet<Especialidade> Especialidade { get; set; }
     }
 }
